@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Rabbın Eri 3D</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#9fd0ed;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#title{
+position:fixed;top:15px;left:50%;transform:translateX(-50%);
+background:#0008;color:white;padding:9px 15px;border-radius:15px;
+font:bold 16px Arial;pointer-events:none
+}
+#joy{
+position:fixed;left:25px;bottom:30px;width:130px;height:130px;
+border:2px solid #ffffffaa;border-radius:50%;background:#0002;
+}
+#knob{
+position:absolute;left:37px;top:37px;width:56px;height:56px;
+border-radius:50%;background:#ffffffaa
+}
+#run{
+position:fixed;right:25px;bottom:45px;width:80px;height:80px;
+border-radius:50%;border:2px solid white;background:#0007;
+color:white;font-weight:bold
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="title">RABBIN ERİ</div>
+
+<div id="joy">
+<div id="knob"></div>
+</div>
+
+<button id="run">KOŞ</button>
+
+<script>
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let W,H;
+let playerX=0;
+let playerY=0;
+let direction=0;
+
+let moveX=0;
+let moveY=0;
+let running=false;
+
+function resize(){
+W=canvas.width=innerWidth;
+H=canvas.height=innerHeight;
+}
+
+addEventListener("resize",resize);
+resize();
+
+/* OYUNCU */
+
+function drawPlayer(){
+
+let x=W/2;
+let y=H/2;
+
+ctx.save();
+ctx.translate(x,y);
+ctx.rotate(direction);
+
+ctx.fillStyle="#333";
+ctx.fillRect(-15,10,12,35);
+ctx.fillRect(3,10,12,35);
+
+ctx.fillStyle="#315b72";
+ctx.fillRect(-25,-25,50,40);
+
+ctx.fillStyle="#e4a477";
+ctx.beginPath();
+ctx.arc(0,-43,15,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="#222";
+ctx.beginPath();
+ctx.arc(0,-48,16,Math.PI,Math.PI*2);
+ctx.fill();
+
+ctx.restore();
+
+}
+
+/* DÜNYA */
+
+function drawWorld(){
+
+ctx.fillStyle="#9fd0ed";
+ctx.fillRect(0,0,W,H);
+
+ctx.fillStyle="#78a95c";
+ctx.fillRect(0,H/2,W,H/2);
+
+/* yol */
+
+ctx.fillStyle="#b99a68";
+ctx.beginPath();
+ctx.moveTo(W*.42,H);
+ctx.lineTo(W*.58,H);
+ctx.lineTo(W*.54,H/2);
+ctx.lineTo(W*.46,H/2);
+ctx.closePath();
+ctx.fill();
+
+/* basit ağaçlar */
+
+for(let i=0;i<7;i++){
+
+let tx=80+i*170;
+let ty=H/2+20;
+
+ctx.fillStyle="#76502f";
+ctx.fillRect(tx,ty,18,70);
+
+ctx.fillStyle="#47783f";
+ctx.beginPath();
+ctx.arc(tx+9,ty,38,0,Math.PI*2);
+ctx.fill();
+
+}
+
+drawPlayer();
+
+}
+
+/* OYUN */
+
+let last=performance.now();
+
+function gameLoop(time){
+
+let dt=Math.min((time-last)/1000,.05);
+last=time;
+
+let speed=running?230:120;
+
+playerX+=moveX*speed*dt;
+playerY+=moveY*speed*dt;
+
+direction=Math.atan2(moveY,moveX);
+
+drawWorld();
+
+requestAnimationFrame(gameLoop);
+
+}
+
+requestAnimationFrame(gameLoop);
+
+
+/* JOYSTICK */
+
+const joy=document.getElementById("joy");
+const knob=document.getElementById("knob");
+
+function joystick(e){
+
+let r=joy.getBoundingClientRect();
+
+let cx=r.left+r.width/2;
+let cy=r.top+r.height/2;
+
+let dx
