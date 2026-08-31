@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Rabbın Eri</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#87b8d8;touch-action:none}
+canvas{display:block}
+#title{position:fixed;top:12px;left:50%;transform:translateX(-50%);color:white;background:#0008;padding:8px 16px;border-radius:18px;font:bold 15px Arial;z-index:5}
+#joy{position:fixed;left:22px;bottom:22px;width:120px;height:120px;border:2px solid #fff8;border-radius:50%;background:#0002;z-index:5}
+#stick{position:absolute;left:34px;top:34px;width:52px;height:52px;border-radius:50%;background:#fffc}
+#run{position:fixed;right:22px;bottom:35px;width:78px;height:78px;border-radius:50%;border:2px solid white;background:#0009;color:white;font-weight:bold;z-index:5}
+</style>
+</head>
+<body>
+
+<div id="title">RABBIN ERİ</div>
+<div id="joy"><div id="stick"></div></div>
+<button id="run">KOŞ</button>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87b8d8);
+
+const camera=new THREE.PerspectiveCamera(
+60,innerWidth/innerHeight,.1,500
+);
+
+const renderer=new THREE.WebGLRenderer({
+antialias:false,
+powerPreference:"low-power"
+});
+
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x557744,2));
+
+const ground=new THREE.Mesh(
+new THREE.PlaneGeometry(200,200),
+new THREE.MeshLambertMaterial({color:0x6d9955})
+);
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+const road=new THREE.Mesh(
+new THREE.PlaneGeometry(10,200),
+new THREE.MeshLambertMaterial({color:0xb59a6d})
+);
+road.rotation.x=-Math.PI/2;
+road.position.y=.01;
+scene.add(road);
+
+const player=new THREE.Group();
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(.42,1,4,8),
+new THREE.MeshLambertMaterial({color:0x315b72})
+);
+body.position.y=1.2;
+player.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(.36,12,8),
+new THREE.MeshLambertMaterial({color:0xd99b72})
+);
+head.position.y=2.05;
+player.add(head);
+
+const legMat=new THREE.MeshLambertMaterial({color:0x333333});
+
+const leg1=new THREE.Mesh(
+new THREE.BoxGeometry(.22,.85,.22),legMat
+);
+leg1.position.set(-.2,.43,0);
+player.add(leg1);
+
+const leg2=leg1.clone();
+leg2.position.x=.2;
+player.add(leg2);
+
+scene.add(player);
+
+camera.position.set(0,3.5,6);
+camera.lookAt(0,1,0);
+
+let mx=0,my=0,running=false;
+
+const joy=document.getElementById("joy");
+const stick=document.getElementById("stick");
+
+function joystick(e){
+const r=joy.getBoundingClientRect();
+let x=e.clientX-(r.left+r.width/2);
+let y=e.clientY-(r.top+r.height/2);
+const max=42;
+const d=Math.hypot(x,y);
+
+if(d>max){
+x=x/d*max;
+y=y/d*max;
+}
+
+mx=x/max;
+my=y/max;
+
+stick.style.transform="translate("+x+"px,"+y+"px)";
+}
+
+function stop(){
+mx=0;
+my=0;
+stick.style.transform="translate(0,0)";
+}
+
+joy.addEventListener("pointerdown",e=>{
+joy.setPointerCapture(e.pointerId);
+joystick(e);
+});
+
+joy.addEventListener("pointermove",e=>{
+if(e.buttons)joystick(e);
+});
+
+joy.addEventListener("pointerup",stop);
+joy.addEventListener("pointercancel",stop);
+
+const run=document.getElementById("run");
+
+run.addEventListener("pointerdown",()=>running=true);
+run.addEventListener("pointerup",()=>running=false);
+run.addEventListener("pointercancel",()=>running=false);
+
+const clock=new THREE.Clock();
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+const dt=Math.min(clock.getDelta(),.05);
+const moving=Math.abs(mx)+Math.abs(my)>.1;
+
+if(moving){
+
+const speed=running?5:2.5;
+
+player.position.x+=mx*speed*dt;
+player.position.z+=my*speed*dt;
+
+player.rotation.y=Math.atan2(mx,my);
+
+const t=performance.now()*.012*(running?1.8:1);
+leg1.rotation.x=Math.sin(t)*.6;
+leg2.rotation.x=-Math.sin(t)*.6;
+
+}
+
+camera.position.x=player.position.x;
+camera.position.z=player.position.z+6;
+camera.position.y=3.5;
+
+camera.lookAt(
+player.position.x,
+1,
+player.position.z
+);
+
+renderer.render(scene,camera);
+}
+
+animate();
+
+addEventListener("resize",()=>{
+camera.aspect=innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+
+</body>
+</html>
